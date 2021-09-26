@@ -19,6 +19,10 @@ const ReportDetails: NextPage<Data> = ({ report }) => {
       <Head>
         <title>{report.name} | TBEZ</title>
         <meta name="description" content={`${report.name}`} />
+        <meta
+          httpEquiv="Content-Security-Policy"
+          content="upgrade-insecure-requests"
+        />
         <link rel="icon" href="/logo.png" />
       </Head>
 
