@@ -1,11 +1,16 @@
 const htmlparser2 = require("htmlparser2");
 const domutils = require("domutils");
 const { v4: uuidv4 } = require("uuid");
-var fs = require("fs");
+const request = require("sync-request");
+const fs = require("fs");
 
 main();
 
 function main() {
+  const htmlResponse = request("GET", "http://teleboario.it/video");
+
+  fs.writeFileSync("data/reports.html", htmlResponse.getBody());
+
   const filePath = "data/reports.html";
   const txt = fs.readFileSync(filePath, "utf8");
 
@@ -21,7 +26,7 @@ function main() {
 
   data = data.map((row) => row.children.map((col) => col.children[0]));
 
-  thumbnails = data.filter((row) => !row[1].attribs.href.endsWith(".mp4")); // thumbnails
+  let thumbnails = data.filter((row) => !row[1].attribs.href.endsWith(".mp4")); // thumbnails
   thumbnails = thumbnails.map((row) => row[1].attribs.href);
 
   data = data.filter((row) => row[1].attribs.href.endsWith(".mp4")); // videos
