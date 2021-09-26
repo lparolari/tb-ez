@@ -79,7 +79,7 @@ const Home: NextPage<Data> = ({ reports, pagination, total }) => {
 
 const ReportCard = ({ report }: { report: ReportDTO }) => {
   return (
-    <Link href={`/reports/${report.id}`}>
+    <Link href={report.url}>
       <a>
         <h2>{report.name.toLowerCase()} &rarr; </h2>
         <div className={styles.badges}>
