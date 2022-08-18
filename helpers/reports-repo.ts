@@ -4,13 +4,12 @@ let reports = require("data/reports.json")
   .sort((a: ReportDTO, b: ReportDTO) => {
     if (a.publishedAt && b.publishedAt) {
       return (
-        new Date(Date.parse(a.publishedAt)).getMilliseconds() -
-        new Date(Date.parse(b.publishedAt)).getMilliseconds()
+        Date.parse(b.publishedAt) -
+        Date.parse(a.publishedAt)
       );
     }
-    return -1;
-  })
-  .reverse();
+    return 1;
+  });
 
 export const reportsRepo = {
   find: (page?: number, limit?: number): ReportDTO[] => {

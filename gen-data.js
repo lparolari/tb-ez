@@ -5,6 +5,29 @@ var http = require('http');
 
 const filePath = "data/reports.json";
 
+const parseDate = (str) => {
+  const day = str.split(" ")[0]
+  const month = str.split(" ")[1]
+  const year = str.split(" ")[2]
+
+  const months = {
+    "Gennaio": "01",
+    "Febbraio": "02",
+    "Marzo": "03",
+    "Aprile": "04",
+    "Maggio": "05",
+    "Giugno": "06",
+    "Luglio": "07",
+    "Agosto": "08",
+    "Settembre": "09",
+    "Ottobre": "10",
+    "Novembre": "11",
+    "Dicembre": "12"
+  }
+
+  return new Date(year + "-" + months[month] + "-" + day).toISOString()
+}
+
 const tbnewsCallback = function(response) {
   var str = '';
 
@@ -47,7 +70,7 @@ const videoCallback = function(response) {
       const poster = vidPlayer.attributes.poster
       const video = poster.substring(0, poster.indexOf(".mp4")) + ".mp4"
       const rawName = video.split("/")[video.split("/").length - 1]
-      const publishedAt = vidDesc.querySelector("div.mb-1").childNodes[2].text.replaceAll("|", "").trim()
+      const publishedAt = parseDate(vidDesc.querySelector("div.mb-1").childNodes[2].text.replaceAll("|", "").trim())
       const size = vidDesc.querySelector("span").text.trim()
 
       console.log("Processing", title)
