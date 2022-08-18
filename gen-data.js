@@ -1,112 +1,83 @@
-const htmlparser2 = require("htmlparser2");
-const domutils = require("domutils");
 const { v4: uuidv4 } = require("uuid");
-const request = require("sync-request");
 const fs = require("fs");
+const HTMLParser = require('node-html-parser');
+var http = require('http');
 
-main();
+const filePath = "data/reports.json";
 
-function main() {
-  const htmlResponse = request("GET", "http://teleboario.it/video");
+const tbnewsCallback = function(response) {
+  var str = '';
 
-  fs.writeFileSync("data/reports.html", htmlResponse.getBody());
+  response.on('data', function(chunk) {
+    str += chunk;
+  });
 
-  const filePath = "data/reports.html";
-  const txt = fs.readFileSync(filePath, "utf8");
+  response.on('end', function() {
+    const root = HTMLParser.parse(str);
 
-  const dom = htmlparser2.parseDocument(txt);
+    const newsContainers = root.getElementById("news_container").querySelectorAll(".video")
 
-  const table = domutils.getElementsByTagName("table", dom)[0];
+    for (const newsContainer of newsContainers) {
+      const newsLink = newsContainer.getElementsByTagName("a")[0]
+      const newsHref = newsLink.attributes.href
 
-  let data = [];
-  data = domutils.getElementsByTagName("tr", table);
-  data = data.slice(1); // header
-  data = data.filter((row) => row.children.length == 5); // hr
-  data = data.slice(1); // parent dir
-
-  data = data.map((row) => row.children.map((col) => col.children[0]));
-
-  let thumbnails = data.filter((row) => !row[1].attribs.href.endsWith(".mp4")); // thumbnails
-  thumbnails = thumbnails.map((row) => row[1].attribs.href);
-
-  data = data.filter((row) => row[1].attribs.href.endsWith(".mp4")); // videos
-
-  const mapToObj = (row) => {
-    const href = row[1].attribs.href;
-    const updatedAt = new Date(row[2].data);
-    const size = row[3].data.trim();
-    const description = row[4].data.trim() || undefined;
-    const thumbnailUrl =
-      thumbnails.find((thumbnail) => thumbnail.includes(href)) || undefined;
-    const rawName = row[1].children[0].data;
-    const name = processName(row[1].children[0].data);
-
-    const date_re = /^([0-9]{8})*/g;
-
-    let publishedAt = name.match(date_re);
-    publishedAt =
-      publishedAt && publishedAt.length > 0 && publishedAt[0] !== ""
-        ? new Date(
-            publishedAt[0].slice(0, 4),
-            publishedAt[0].slice(4, 6),
-            publishedAt[0].slice(6, 8)
-          )
-        : undefined;
-
-    return {
-      id: uuidv4(),
-      url: `http://teleboario.it/video/${href}`,
-      name: publishedAt ? name.slice(9) : name,
-      rawName: rawName,
-      size: size,
-      updatedAt: updatedAt,
-      description: description,
-      thumbnailUrl:
-        !!thumbnailUrl && `http://teleboario.it/video/${thumbnailUrl}`,
-      publishedAt: publishedAt,
-    };
-  };
-
-  data = data.map(mapToObj);
-
-  console.log(`Processed ${data.length} records.`);
-
-  str = JSON.stringify(data, (k, v) => (v === undefined ? null : v), 2);
-
-  fs.writeFileSync("data/reports.json", str);
+      http.request({
+        host: 'www.teleboario.it',
+        path: newsHref
+      }, videoCallback).end();
+    }
+  });
 }
 
-function processName(name) {
-  name = name.toLowerCase();
-  name = name.replace(/\uFFFD/g, "");
-  name = removeUnderscore(name);
-  name = keepUtf8Chars(name);
-  name = removeExt(name);
-  name = removeTgWeb(name);
-  name = name.trim();
-  return name;
+const videoCallback = function(response) {
+  var str = '';
+
+  response.on('data', function(chunk) {
+    str += chunk;
+  });
+
+  response.on('end', function() {
+    const root = HTMLParser.parse(str);
+    const vidPlayer = root.getElementById("video_notizia")
+    const vidDesc = root.getElementById("video_text")
+
+    const title = vidDesc.getElementsByTagName("h1")[0].text.trim()
+
+    if (vidPlayer) {
+      const poster = vidPlayer.attributes.poster
+      const video = poster.substring(0, poster.indexOf(".mp4")) + ".mp4"
+      const rawName = video.split("/")[video.split("/").length - 1]
+      const publishedAt = vidDesc.querySelector("div.mb-1").childNodes[2].text.replaceAll("|", "").trim()
+      const size = vidDesc.querySelector("span").text.trim()
+
+      console.log("Processing", title)
+
+      const txt = fs.readFileSync(filePath, "utf8");
+      const vids = JSON.parse(txt)
+
+      const data = {
+        id: uuidv4(),
+        url: video,
+        name: title,
+        rawName: rawName,
+        size,
+        publishedAt,
+      }
+
+      fs.writeFileSync(filePath, JSON.stringify(vids.concat(data)));
+    } else {
+      console.log("Skipped", title)
+    }
+
+  });
 }
 
-function keepUtf8Chars(x) {
-  return x
-    .split("")
-    .map((_, i) =>
-      x.charCodeAt(i) <= 127 ||
-      (x.charCodeAt(i) >= 160 && x.charCodeAt(i) <= 255)
-        ? x.charAt(i)
-        : ""
-    )
-    .join("");
+const main = () => {
+  fs.writeFileSync(filePath, "[]");
+  http.request({
+    host: 'www.teleboario.it',
+    path: '/tbnews'
+  }, tbnewsCallback).end();
 }
 
-function removeUnderscore(x) {
-  return x.split("_").join(" ");
-}
-
-function removeExt(x) {
-  return x.replace(".mp4", "");
-}
-
-function removeTgWeb(x) {
-  return x.replace("tg web", "");
-}
+main()

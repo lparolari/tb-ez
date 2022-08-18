@@ -85,7 +85,7 @@ const ReportCard = ({ report }: { report: ReportDTO }) => {
         <div className={styles.badges}>
           {report.publishedAt && (
             <span className={styles.badge}>
-              📅 {dateStr(new Date(Date.parse(report.publishedAt)))}
+              📅 {report.publishedAt}
             </span>
           )}{" "}
           <span className={styles.badge}>💾 {report.size}</span>
