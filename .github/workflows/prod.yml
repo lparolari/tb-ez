@@ -1,4 +1,4 @@
-name: deploy
+name: prod
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -10,7 +10,7 @@ on:
     - cron: '0 */24 * * *'
   workflow_dispatch:
 jobs:
-  Deploy-Preview:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
@@ -23,7 +23,5 @@ jobs:
         run: vercel pull --yes --token=${{ secrets.VERCEL_TOKEN }}
       - name: build artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-      - name: deploy to preview
-        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
       - name: deploy to production
         run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
